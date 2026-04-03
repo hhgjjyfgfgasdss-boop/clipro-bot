@@ -10,7 +10,7 @@ from telegram.ext import (
 import google.generativeai as genai
 
 # ==========================================
-# ตั้งค่า API Keys (ใส่ใน Railway Environment Variables)
+# ตั้งค่า API Keys
 # ==========================================
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -21,12 +21,9 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 # ==========================================
 # เก็บ state ของแต่ละ user
 # ==========================================
-user_history = {}   # { user_id: [ {"role": "user/model", "parts": [...]} ] }
-user_mode    = {}   # { user_id: "transcribe" | "edit" | "sound" | "script" | "analyze" | "trend" | "chat" }
+user_history = {}
+user_mode    = {}
 
-# ==========================================
-# System Prompt ของบอท
-# ==========================================
 SYSTEM_PROMPT = """คุณคือ "คลิปโปร" AI ผู้ช่วยสำหรับ Content Creator และ Video Editor ชาวไทย
 
 ความสามารถหลัก:
@@ -40,9 +37,6 @@ SYSTEM_PROMPT = """คุณคือ "คลิปโปร" AI ผู้ช่
 สไตล์การตอบ: ภาษาไทย, กระชับ, ใช้ emoji, ให้คำแนะนำที่นำไปใช้ได้จริง"""
 
 
-# ==========================================
-# เรียก Gemini
-# ==========================================
 async def ask_gemini(user_id: int, message: str, media_b64=None, mime_type=None) -> str:
     if user_id not in user_history:
         user_history[user_id] = []
@@ -69,9 +63,6 @@ async def ask_gemini(user_id: int, message: str, media_b64=None, mime_type=None)
         return f"❌ เกิดข้อผิดพลาด: {str(e)}\nลองใหม่อีกครั้งนะครับ"
 
 
-# ==========================================
-# เมนูหลัก
-# ==========================================
 def main_menu():
     keyboard = [
         [InlineKeyboardButton("🎙️ ถอดเสียงเป็นข้อความ", callback_data="mode_transcribe")],
@@ -89,9 +80,6 @@ def main_menu():
     return InlineKeyboardMarkup(keyboard)
 
 
-# ==========================================
-# Commands
-# ==========================================
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_mode[user.id] = "chat"
@@ -113,9 +101,6 @@ async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🗑️ ล้างประวัติแล้วครับ เริ่มใหม่ได้เลย!")
 
 
-# ==========================================
-# Callback เมื่อกดปุ่ม
-# ==========================================
 async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
@@ -137,9 +122,6 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_text(text, parse_mode="Markdown")
 
 
-# ==========================================
-# รับข้อความ
-# ==========================================
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid  = update.effective_user.id
     text = update.message.text
@@ -160,9 +142,6 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply, parse_mode="Markdown")
 
 
-# ==========================================
-# รับไฟล์เสียง
-# ==========================================
 async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     await update.message.reply_text("🎙️ รับไฟล์เสียงแล้ว กำลังถอดเสียง โปรดรอสักครู่...")
@@ -194,9 +173,6 @@ async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ ถอดเสียงไม่สำเร็จ: {str(e)}")
 
 
-# ==========================================
-# รับวิดีโอ
-# ==========================================
 async def on_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid  = update.effective_user.id
     mode = user_mode.get(uid, "analyze")
@@ -229,9 +205,6 @@ async def on_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-# ==========================================
-# Main
-# ==========================================
 def main():
     if not TELEGRAM_TOKEN or not GEMINI_API_KEY:
         print("❌ กรุณาตั้งค่า TELEGRAM_TOKEN และ GEMINI_API_KEY")
